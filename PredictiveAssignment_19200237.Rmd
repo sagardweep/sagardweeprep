@@ -1,0 +1,120 @@
+---
+title: "Predictive Assignment"
+author: "Sagardweep Saha- 19200237"
+date: "08/11/2019"
+output: pdf_document
+---
+## Load the dataset
+```{r read}
+House<-read.csv(file.choose(),header=T)
+House$Price<-House$ï..Price
+House$ï..Price<-NULL
+```
+
+## Using a boxplot, histogram and summary. Describe the distribution of the sales price of the houses.
+```{r Exploratory Data Analysis}
+boxplot(House$Price)
+hist(House$Price)
+summary(House$Price)
+str(House)
+```
+## Convert all the categorical variables to factors. Using the summary and a boxplot describe how sales prices vary with respect to the number of bedrooms, bathrooms, garage size and school.
+```{r EDA}
+col<-c("Bed","Bath","Garage")
+House[,col]<-lapply(House[,col],as.factor)
+str(House)
+boxplot(House$Price~House$Bed)
+boxplot(House$Price~House$Bath)
+boxplot(House$Price~House$Garage)
+boxplot(House$Price~House$School)
+by(House$Price, House$Bed, summary)
+summary(House$Bed)
+by(House$Price, House$Bath, summary)
+summary(House$Bath)
+by(House$Price, House$Garage, summary)
+summary(House$Garage)
+by(House$Price, House$School, summary)
+summary(House$School)
+```
+
+## Using the summary, correlation and the pairs plots discuss the relationship between the response sales price and each of the numeric predictor variables.
+```{r relationship}
+library(ggplot2)
+library("GGally")
+summary(House$Size)
+summary(House$Lot)
+summary(House$Year)
+summary(House$Price)
+cor(House$Price,House$Size)
+cor(House$Price,House$Lot)
+cor(House$Price,House$Year)
+a<-ggpairs(House[,c(8,1,2,5)],columnLabels=c("Price","Size","Lot","Year"))
+a
+```
+
+## Fit a multiple linear regression model to the data with sales price as the response and size, lot, bath, bed, year, garage and school as the predictor variables. Write down the equation for this model.
+```{r Regression Model}
+Lin_Mod<-lm(Price~.,data = House)
+formula(Lin_Mod)
+summary(Lin_Mod)
+plot(Lin_Mod)
+```
+
+## Compute the type 1 anova table. Interpret the output. Hint: State the hypothesis being tested, the test statistic and p-value and the conclusion in the context of the problem.
+```{r ANOVA}
+anova(Lin_Mod)
+```
+
+## Compute a type 2 anova table comparing the full model with all predictor variables to the the reduced model with the suggested predictor variable identified in the previous question removed. Hint: State the hypothesis being tested, the test statistic and p-value and the conclusion in the context of the problem.
+```{r anova2}
+Lin_Mod2<-lm(Price~Size+Lot+Bath+Bed+Garage+School,data = House)
+formula(Lin_Mod2)
+summary(Lin_Mod2)
+anova(Lin_Mod,Lin_Mod2)
+```
+
+## Diagnostics
+```{r diagnostics}
+library("GGally")
+library(car)
+library(corrplot)
+avPlots(Lin_Mod)
+crPlots(Lin_Mod)
+dwt(Lin_Mod)
+a<-cor(House[,c("Size","Lot","Year")])
+a
+corrplot.mixed(a)
+vif(Lin_Mod)
+ plot(fitted(Lin_Mod),rstudent(Lin_Mod))
+ plot(House$Lot,rstudent(Lin_Mod))
+ plot(House$Size,rstudent(Lin_Mod))
+ plot(House$Year,rstudent(Lin_Mod))
+hist(rstudent(Lin_Mod))
+qqnorm(rstudent(Lin_Mod))
+qqline(rstudent(Lin_Mod), col = 2)
+```
+
+## Leverage, Influence and Outliers
+```{r LIO}
+leverage_points = as.numeric(which(hatvalues(Lin_Mod)>((2*7)/length(House$Price))))
+leverage_points
+leveragePlots(Lin_Mod)
+influencePlot(Lin_Mod)
+outlierTest(Lin_Mod)
+library(olsrr)
+ols_plot_resid_lev(Lin_Mod)
+ols_plot_cooksd_bar(Lin_Mod)
+```
+
+## Plot the observed house prices, their expected vale (fitted value), confidence intervals (in red) and prediction intervals (in blue). Looking at this plot is this model providing a good estimate of the house prices.
+```{r CI and PI Plot}
+c<-predict(Lin_Mod,level = 0.95,interval = "confidence")
+p<-predict(Lin_Mod,level = 0.95,interval = "prediction")
+ggplot(House,aes(y=House$Price,x=fitted(Lin_Mod)))+geom_point()+
+  stat_smooth(aes(y=c[,"upr"]),method = lm,se=F,col='red')+
+  stat_smooth(aes(y=c[,"lwr"]),method = lm,se=F,col='red')+
+  stat_smooth(aes(y=p[,"upr"]),method = lm,se=F,col='blue')+
+  stat_smooth(aes(y=p[,"lwr"]),method = lm,se=F,col='blue')+
+  geom_line(aes(y=c[,"fit"]),col='green')
+  
+```
