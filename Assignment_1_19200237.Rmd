@@ -1,0 +1,91 @@
+---
+title: "Assignment 1"
+author: "Sagardweep Saha- 19200237"
+date: "11/10/2019"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+install.packages('tinytex')
+## Load the Dataset Eurocrime
+```{r ,Read}
+Eurocrime<-read.csv("C:/Autumn/Data Programming with R/Assignment/EurostatCrime2017.csv",
+header=TRUE,row.names=1)
+```
+
+## Display the number of obervations and variables in the dataframe
+```{r, Number of row and column}
+nrow(Eurocrime)
+ncol(Eurocrime)
+dim(Eurocrime)
+```
+Ans: 41 Observations and 11 Variables
+
+## Adding a new column called ALL_Theft
+```{r, Add a new column called All_Theft}
+Eurocrime["ALL_Theft"]<- 0
+Eurocrime$ALL_Theft<-rowSums(Eurocrime[,c(7,8,9,10)],na.rm = TRUE)
+```
+
+## Removing a few columns from the original dataframe and creating a new data frame
+```{r, remove a few columns}
+Eurocrime_new<- Eurocrime[-c(7,8,9,10)]
+```
+
+## Displaying the countries with missing data
+```{r, list counntries with missing data}
+row.names(Eurocrime_new[!complete.cases(Eurocrime_new),])
+```
+Ans:  Denmark,France,Croatia,Hungary,
+Netherlands,Austria,Poland,Portugal
+Sweden,England_and_Wales,Iceland,
+Liechtenstein,Norway,North_Macedonia,Turkey,Bosnia_and_Herzegovina
+ 
+## Removing the countries with missing data and creating a new dataframe
+```{r, remove the countries with missing data}
+Eurocrime_Refined<-na.omit(Eurocrime_new)
+Eurocrime_Refined
+```
+
+## Displaying the number of observations and variables in Eurocrime_Refined
+```{r, number of observations and variables in the dataframe}
+nrow(Eurocrime_Refined)
+ncol(Eurocrime_Refined)
+dim(Eurocrime_Refined)
+```
+Ans: 25 observations and 8 Variables
+
+## Displaying the 3 most common crimes in Ireland in 2017
+```{r, three most common crimes in Ireland in 2017}
+row=which(rownames(Eurocrime_Refined)=="Ireland")
+ireland<-Eurocrime_Refined[row,]
+Ireland_sorted<-sort(ireland, decreasing  = TRUE)
+Ireland_sorted[,1:3]
+
+sort(Eurocrime_Refined[c("Ireland"),],decreasing = T)[1:3]
+```
+Ans: The three most common crimes in Ireland in 2017 are:
+All_Theft=1956.29, Unlawful_acts_involving_
+controlled_drugs_or_precursors= 351.58, Assault=84.59
+
+## Displaying the country that has the highest overall record of offences (per hundred thousand inhabitants)
+```{r, country has the highest overall record of offences}
+Eurocrime_Refined["Total_Offences"]<-0
+Eurocrime_Refined$Total_Offences<-rowSums(Eurocrime_Refined, na.rm = TRUE)
+max(Eurocrime_Refined$Total_Offences, na.rm=TRUE)
+Eurocrime_Refined[match(3515.89, Eurocrime_Refined$Total_Offences),]
+```
+Ans: Switzerland
+
+## Plotting two barplots where we analyze the data between two columns 
+## i.e sexual_violence v/s Eurocrime_Refined$Unlawful_acts_involving_controlle
+## d_drugs_or_precursors. Here we can see that in most countries 
+## where acts realted to drugs are more, sex violence is quite low.
+```{r, Analysis}
+
+h<-cbind(Eurocrime_Refined$Sexual.violence,
+Eurocrime_Refined$Unlawful_acts_involving_controlled_drugs_or_precursors)
+barplot(h, beside = TRUE, xlab = "sexual_violence v/s Eurocrime_Refined$Unlawful_acts_invo
+lving_controlled_drugs_or_precursors ")
+```
