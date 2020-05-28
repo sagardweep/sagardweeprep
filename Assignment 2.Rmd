@@ -1,0 +1,138 @@
+---
+title: "Assignment2"
+author: "Koyel Majumdar (19200368)"
+date: "5/14/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+install.packages("moments")
+library(moments)
+
+```
+
+# Question 2
+
+```{r 1, include=TRUE,echo=TRUE}
+ash.fdf<-read.csv(file.choose(),header = TRUE)
+set.seed(19200368)
+samples <- sample(1:99, size = 5)
+ash.data<-ash.fdf[-samples,]
+```
+
+```{r 2,include=TRUE,echo=TRUE}
+
+plot(density(ash.data[,2]))
+plot(density(ash.data[,3]))
+plot(density(ash.data[,4]))
+plot(density(ash.data[,5]))
+plot(density(ash.data[,6]))
+plot(density(ash.data[,7]))
+plot(density(ash.data[,8]))
+plot(density(ash.data[,9]))
+
+table(is.na(ash.data))
+
+skewness(ash.data[,-1])
+```
+On plotting the density of the mass concentration of the 8 elements we can see the data are positively skewed. The element P2O5, Fe2O3, Al2O3, MgO and Na2O are highly skewed. The elements Ca0 and K2O are moderately skewed. The graph of SiO2 shows the distribution is somewhat symmetrical and very slightly skewed. As the data are skewed, it becomes important to apply transformations to the data. In Factor Analysis the factor loadings and error loadings are obtained using Maximum Likelihood Estimation and it is important for the data to be normally distributed for MLE to be done. 
+
+## Data Transformation
+The highly skewed data are transformed using log10 transformation and moderately skewed data are transformed using sqrt transformation
+
+```{r 3,include=TRUE,echo=TRUE}
+ash.transform=ash.data
+ash.transform[,2]=log10(ash.data[,2])
+ash.transform[,4]=log10(ash.data[,4])
+ash.transform[,5]=log10(ash.data[,5])
+ash.transform[,6]=sqrt(ash.data[,6])
+ash.transform[,7]=log10(ash.data[,7])
+ash.transform[,8]=log10(ash.data[,8])
+ash.transform[,9]=sqrt(ash.data[,9])
+skewness(ash.transform[,-1])
+
+plot(density(ash.transform[,2])) 
+plot(density(ash.transform[,4]))
+plot(density(ash.transform[,5]))
+plot(density(ash.transform[,6]))
+plot(density(ash.transform[,7]))
+plot(density(ash.transform[,8]))
+plot(density(ash.transform[,9]))
+```
+
+On applying the mentioned transformations we can see all the variables are transformed and the skewness has decreased till quite an extent in all the variables and they are fairly symmetrical.
+
+## Factor Analysis
+
+Applying Factor Analysis to the transformed data
+
+```{r 4,include=TRUE,echo=TRUE}
+
+fa.fit2<-factanal(ash.transform[,-1],factors = 2,rotation = "varimax")
+fa.fit3<-factanal(ash.transform[,-1],factors = 3,rotation = "varimax")
+fa.fit4<-factanal(ash.transform[,-1],factors = 4,rotation = "varimax")
+
+fa.fit2
+fa.fit3
+fa.fit4
+# sum(fa.fit2$uniquenesses)
+# sum(fa.fit3$uniquenesses)
+# sum(fa.fit4$uniquenesses)
+# 
+# #communality
+# s1<-apply(fa.fit2$loadings^2,1,sum)
+# s2<-apply(fa.fit3$loadings^2,1,sum)
+# s3<-apply(fa.fit4$loadings^2,1,sum)
+# sum(s1)
+# sum(s2)
+# sum(s3)
+# 
+# ev <- eigen(cor(ash.transform[,-1])) # get eigenvalues
+# ev
+# ap <- parallel(subject=nrow(ash.transform[,-1]),var=ncol(ash.transform[,-1]), rep=100, cent=.05)
+# nS <- nScree(x=ev$values, aparallel=ap$eigen$qevpea)
+# plotnScree(nS)
+```
+We applied factor analysis on the transformed data by rotating the data matrix using "varimax" rotation. We did factor analysis to obtain 2 , 3 and 4 factors. On fitting the factor analysis model for 2 factors the chi-squared test value was 70.68 and p-value 6.02e-10. For 3 factors, the model had chi-sqaured statistic as34.96 and p-value 1.14e-5. For 4 factors the chi-squared value was 6.86 and p-value is 0.0324. The chi-squared statistic and p-value is used for testing the goodness of the model fitted on the data and for hypothesis testing "Test of the hypothesis that # factors are sufficient". If chi-squared test statistic is low it suggests the model fitted is good. If the p-value is <0.05 we reject the null hypothesis proposed. In the above fitted models the chi-sqaured test statistic is lowest for 4 factors and hence we can say this model has better fitness than the others. Also the p-value << 0.05 for 2 factors and so we reject the hypothesis saying 2 factors is sufficient. Similarly for 3 factors the p-value<<0.05 and we again reject the hypothesis suggesting 3 factors are sufficient. For 4 factors the p-value is slighlt less than 0.05 and hence we do not reject the hypothesis and say that 4 factors are sufficient for the transformed data.
+Hence we can say 4 factors are required to capture the correlation structure in the variables.
+
+
+## Loadings COlumn
+Interpreting the factor loadings of 1st two factors
+```{r 5,include=TRUE,echo=TRUE}
+fa.fit4$loadings[,1:2]
+```
+
+A variable is strongly influenced by a factor with loadings close to -1 or 1. A factor loading close to 0 suggests that the factor has very weak influence on the variables.
+
+i) P2O5 element has a loading of -0.09 by the first factor and 0.16 by the second factor. This variable is not highly influenced by both the factors. 
+
+ii) SiO2 element has a loading on -0.34 by the first factor. As this loading value is closer to 0 we can say that this factor doesnot influence the variable.  The loading by the second factor is -0.6. As the absolute value of the loading is closer to 1 we can say that the second factor influences this variable to a certain extent.
+
+iii) Fe2O3 is higly influenced by factor1 as the loading is 0.8 and is not influenced by factor 2 as the loading value is 0.28
+
+iv) Al2O3 is similarly highly influenced by factor1 and not by factor 2 as the loadings value is 0.81 and 0.2
+
+v) CaO is highly influenced by factor 2 as the loading is 0.94 whereas the loading value by factor 1 is 0.3 and hence it is not influenced by factor1
+
+vi) MgO has a loading value of 0.07 by factor 1 and is not influenced by this factor. The second factor has a loading of 0.52 and is slightly influencing this variable
+
+vii) Na2O has a loading value of 0.098 by factor 2 and is not influenced by this factor. The first factor has a loading of 0.56 and is slightly influencing this variable
+
+viii) K2O is not influenced by either of the factors as the absolute value of the loadings are closer to 0.
+
+```{r 6,include=TRUE,echo=TRUE}
+fa.fit<-factanal(ash.transform[,-1],scores = "regression",factors = 4,rotation = "varimax")
+x=rep(1:94)
+plot(fa.fit$scores[,1],type="n",xlab="Observation number",ylab="Factor Scores",main="Factor Scores of first latent factor")
+text(x,y=fa.fit$scores[,1], labels=ash.transform$SOT,cex=0.8)
+
+
+```
+
+Regression is applied on the dataset by the model fitted to estimate the value for the factors. These estimated values of each observation for each factor is known as the factor scores. These help define the variation of the data by the 4 factors. 
+The factor scores for the first latent factor define the variation of data explained by the first factor for each observation. We plotted these scores and tried to interpret these scores. The data variation is mainly within the interval of [-2,2]. Around 5 observations are found to be highly varying with scores greater than 2. From the plot we can observe that very few data are highly related to this factor as the scores are greater than 2. More than 50% of data have scores below 0.5 and so we can say these data are not explained by factor 1 and are explained more by the other factors.
+
+
+
