@@ -1,0 +1,246 @@
+---
+title: "Assignment 2(STAT40150)"
+author: "Sagardweep Saha- 19200237"
+date: "08/04/2020"
+output:
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+if(!require(rgl))
+{
+install.packages("rgl")
+library(rgl)
+}
+if(!require(poLCA))
+{
+install.packages("poLCA")
+library(poLCA)
+}
+
+if(!require(MASS))
+{
+install.packages("MASS")
+library(MASS)
+}
+if(!require(vegan))
+{
+install.packages("vegan")
+library(vegan)
+}
+if(!require(mclust))
+{
+install.packages("mclust")
+library(mclust)
+}
+if(!require(e1071))
+{
+install.packages("e1071")
+library(e1071)
+}
+if(!require(ggplot2))
+{
+  install.packages("ggplot2")
+  library(ggplot2)
+}
+if(!require(proxy))
+{
+  install.packages("proxy")
+  library(proxy)
+}
+```
+
+## Q1a
+
+```{r Q1a}
+library(dplyr)
+library(cluster)
+library(graphics)
+load(file.choose())
+votes_data<-as.data.frame(apply(bin.votes,2,function(x) ifelse(x==1,0,1)))
+dist_mat<-dist(votes_data,method = "euclidean")
+cl.average = hclust(dist_mat, method="average")
+cl.complete = hclust(dist_mat, method="complete")
+plot(cl.average,cex=0.5)
+hcl<-cutree(cl.average,k=2)
+rect.hclust(cl.average, k=2, border="blue") 
+plot(cl.complete,cex=0.5)
+h1<-agnes(votes_data,method = "average")
+h2<-agnes(votes_data,method = "complete")
+pltree(h1,cex=0.5, main = "Dendogram of Agnes(Average)")
+pltree(h2,cex= 0.5,main = "Dendogram of Agnes(Complete)")
+cat("agglomerative coefficient of agnes average method = ",h1$ac)
+cat("\nagglomerative coefficient of agnes average method = ",h2$ac)
+
+```
+
+The data provides us with six different votes that took placein the parliament. If the vote is yes the response is recorded as '2' and for no the response is '1'. The data is binary in nature. We have used hierarchical clustering method to cluster the binary data. But first we convert 1-2 to 0-1. So for a response voted as yes is converted to '1' and a no as '0'. Here we have used euclidean distance to calculate the dissimilarity matrix.Here we have taken the average and complete method for hierarchical clustering as single method shows chaining effect. The average method shows to distinct clusters whereas complete method does not show two distinct clusters.We cut the tree at height 1.8 for the average method with two distict clusters.
+We have also used agnes function which computes agglomerative hierarchical clustering of the dataset. We find the the agglomerative coefficient, measuring the clustering structure of the dataset.The agglomerative coefficient for average method is 0.9551723 and for complete method is 0.9633623.
+
+## Q1b
+
+
+```{r Q1b}
+set.seed(19200237)
+formula<-cbind(Environment,RentFreeze,SocialWelfare,GamingAndLotteries,
+           HousingMinister,FirstTimeBuyers)~1
+min_bic <- 10000
+lca_bic<-rep(NA,6)
+for(i in 2:6){
+  lca <- poLCA(formula, bin.votes, nclass=i, maxiter=3000, 
+              tol=1e-5, na.rm=FALSE,  
+              nrep=10, verbose=TRUE, calc.se=TRUE, graphs = T)
+  lca_bic[i]<-lca$bic
+  if(lca$bic < min_bic){
+    min_bic <- lca$bic
+    best_model_LCA<-lca
+  }
+}    	
+best_model_LCA
+
+p<-c(1:6)
+plot(p,lca_bic,type="b",col="red",xlab = "Class",ylab = "BIC")
+
+```
+
+We have applied poLCA for 2 to 6 classes.Based on minimum BIC value we have selected the best class. We have selected model with 2 clusters as the best clustering solution as it has the lowest BIC. So we apply LCA with 2 clusters to the dataset.
+We can see that the estimated class population shares is 37.2% for class 1 and 62.8% for class 2. We can also see this in the probability graph.
+We can also see from the bic plot that class 2 has the lowest bic value.
+
+
+## Q1c
+
+```{r Q1c}
+tab<-table(hcl,best_model_LCA$predclass)
+tab
+classAgreement(tab)
+```
+
+A cross tabulation can be used to compare different clusterings of the data and also a clustering solution versus a reference partition. This comparison can also be performed using the Rand and the adjusted Rand indexes.
+We can see that there are 2 clusters for voting yes or no. From the rand index value we can observe that hierarchical clsutering and best lca model agrees 89.05% with each other. And the adjusted rand index is 78.07%.
+
+```{r Q1d}
+party_names<- read.csv(file.choose())
+bin.votes$TD<-rownames(bin.votes)
+merged_data<-merge(party_names,bin.votes,by="TD")
+head(merged_data)
+merged_data$predclass<-best_model_LCA$predclass
+tab1<-table(merged_data$Party,merged_data$predclass)
+tab1
+classAgreement(tab1)
+ggplot(as.data.frame(tab1), aes(x=Var1, y = Freq, fill=Var2)) + 
+    geom_bar(stat="identity")+scale_fill_discrete(name="class")
+
+```
+
+## Q2
+
+```{r Q2a}
+hyptis<-read.csv(file.choose())
+terpenes<-hyptis[,1:7]
+summary(hyptis)
+d<-dist(terpenes)
+msd_fit<-cmdscale(d,k=2,eig = T)
+s<-sum(abs(msd_fit$eig[1]))/sum(abs(msd_fit$eig))
+s1<-sum(abs(msd_fit$eig[1:2]))/sum(abs(msd_fit$eig))
+s2<-sum(abs(msd_fit$eig[1:3]))/sum(abs(msd_fit$eig))
+s3<-sum(abs(msd_fit$eig[1:4]))/sum(abs(msd_fit$eig))
+
+v<-c(s,s1,s2,s3)
+plot(v, type="b", 
+      ylab="Proportionality", 
+     xlab="Number of dimensions", main="Variation explained by different dimensions")
+x<- msd_fit$points[,1]
+y<- msd_fit$points[,2]
+cols <- c("black","magenta","green","red")
+plot(x, y, type="n", xlab="1D", ylab="2D", main="Classical Metric Scaling")
+text(x, y, hyptis$Location, cex=1, col=cols[as.numeric(hyptis$Location)])
+
+```
+
+The n eigenvalues computed during the scaling process are returned by cmdscale. We select the number of dimensions for our lower dimensional space. We need to examine the proportion of variation accounted for by each value of dimensions = 2, 3, 4. By plotting the proportion of variation accounted for the different dimensions we can see that 2 dimensions explains 73.4% of data variation. 3D explains 85.93% and 4D explains 96.57%. 3D and 4D doesn't show a huge spike in change like the spike from 1D to 2D. It also becomes difficult to visualize similarities as the number of dimensions increases.
+So we have plot the distances between each points in 2D which is easy to visualize.
+
+
+## Q2b
+
+```{r Q2b}
+stress_terpenes<-sammon(d,k=1)$stress
+for(i in 1:3)
+{
+  stress_terpenes<-append(stress_terpenes,sammon(dist(terpenes),k=i+1)$stress)
+  
+}
+plot(seq(4),stress_terpenes, type="b", 
+      ylab="Stress", xlab="Number of dimensions")
+
+stress<-sammon(d,k=2)
+
+plot(stress$points[,1],stress$points[,2],type="n", xlab="", ylab="", main="Sammon")
+
+text(stress$points[,1],stress$points[,2], row.names(hyptis), cex=0.6, col=cols[as.numeric(hyptis$Location)])
+
+## Kruskal
+stress_kruskal=isoMDS(d,k=1)$stress
+for(i in 1:3)
+{
+  stress_kruskal=append(stress_kruskal,isoMDS(dist(terpenes),k=i+1)$stress)
+  
+}
+plot(seq(4),stress_kruskal, type="b", main="Kruskal",
+     ylab="Stress", xlab="Number of dimensions")
+
+stress1=isoMDS(d,k=2)
+plot(stress1$points[,1],stress1$points[,2],type="n", xlab="", ylab="", main="Kruskal")
+
+text(stress1$points[,1],stress1$points[,2], row.names(hyptis), cex=0.6, col=cols[as.numeric(hyptis$Location)])
+
+```
+
+## Q2c
+
+```{r Q2c}
+proc12 = procrustes(msd_fit$points[,1:2], stress$points)
+proc23 = procrustes(stress$points, stress1$points)
+proc31 = procrustes(stress1$points, msd_fit$points[,1:2])
+plot(proc12,main = "Plot shift between CMS and Sammon' scaling configurations")
+plot(proc23,main = "Plot shift between Sammon' scaling and Kruskal scaling configurations")
+plot(proc31,main = "Plot shift between Kruskal scaling and CMS configurations")
+plot(proc12, kind=2,main = "Residual diagram of CMS and Sammon' scaling configurations")
+plot(proc23, kind=2,main = "Residual diagram of Sammon' scaling and Kruskal scaling configurations")
+plot(proc31, kind=2,main = "Residual diagram of Kruskal scaling and CMS configurations")
+proc12
+proc23
+proc31
+
+```
+
+Procrustes analysis matches one MDS configuration to anotherby dilation, rotation, reflection and translation of a MDS configuration. 
+Kind 1 plot gives a visual indication of the degree of match between the two ordinations. Symbols or labels show the position of the samples in the first ordination, and arrows point to their positions in the target ordination. The plot also shows the rotation between the two ordinations necessary to make them match as closely as possible.
+Kind 2 plots show the residuals for each sample. This allows identification of samples with the worst fit. The horizontal lines, from bottom to top, are the 25% (dashed), 50% (solid), and 75% (dashed) quantiles of the residuals.
+From the plot shifts we can see that kruskal and cms configuration (i.e, 3-1 combination) has more degree of match. And from the residual plot we can see that the residuals for 3-1 combination is much less than the residuals for 1-2 and 2-1 combination.
+
+## Q2d
+
+```{r Q2d}
+mbc=Mclust(terpenes,G=1:7)
+s<-summary(mbc)
+s
+mbc$BIC
+plot(mbc, what="BIC", legendArgs = list(x="topleft", cex=0.5,
+horiz=T))
+
+```
+
+Model-based clustering is a statistical modelling based approach to searching for
+group structure within a set of observations. Model-based clustering fits a mixture
+of constrained multivariate normals to the set of observations.
+We fit a range of models with G = 1 to G = 7 groups and ask R to fit all the
+different constrained versions of the covariance matrices for each value of G. Mclust will then use the BIC to choose the optimal model.
+Here we get 6 cluster solution as the best fit with optimal BIC value of -1175.816.
+By plotting the data we highlight the resulting clusters. We can see the different sizes,
+shapes and orientations (where relevant) of the multivariate normal distributions
+fitted to each cluster.
+
